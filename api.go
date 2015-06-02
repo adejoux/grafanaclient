@@ -41,6 +41,7 @@ type DataSource struct {
 	BasicAuthUser     string `json:"basicAuthUser"`
 	BasicAuthPassword string `json:"basicAuthPassword"`
 	IsDefault         bool   `json:"isDefault"`
+	JsonData          string `json:"jsonData"`
 }
 
 func NewSession(user string, password string, url string) *Session {
@@ -96,7 +97,7 @@ func (s *Session) CreateDataSource(ds DataSource) (err error) {
 	return
 }
 
-func (s *Session) GetDataSourceList() (err error) {
+func (s *Session) GetDataSourceList() (ds []DataSource, err error) {
 	reqUrl := s.url + "/api/datasources"
 
 	response, err := s.client.Get(reqUrl)
@@ -106,9 +107,12 @@ func (s *Session) GetDataSourceList() (err error) {
 		defer response.Body.Close()
 		if response.StatusCode != 200 {
 			error_message := fmt.Sprintf("%d", response.StatusCode)
-			return errors.New(error_message)
+			return ds, errors.New(error_message)
 		}
 	}
+
+	dec := json.NewDecoder(response.Body)
+	dec.Decode(&ds)
 	return
 }
 
