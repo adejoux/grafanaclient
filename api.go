@@ -41,7 +41,6 @@ type DataSource struct {
 	BasicAuthUser     string `json:"basicAuthUser"`
 	BasicAuthPassword string `json:"basicAuthPassword"`
 	IsDefault         bool   `json:"isDefault"`
-	JsonData          string `json:"jsonData"`
 }
 
 func NewSession(user string, password string, url string) *Session {
@@ -97,6 +96,28 @@ func (s *Session) CreateDataSource(ds DataSource) (err error) {
 	return
 }
 
+// func (s *Session) DeleteDataSource(ds DataSource) (err error) {
+// 	reqUrl := s.url + "/api/datasources"
+
+// 	jsonStr, _ := json.Marshal(ds)
+// 	fmt.Println(string(jsonStr))
+
+// 	request, err := http.NewRequest("DELETE", reqUrl, bytes.NewBuffer(jsonStr))
+// 	request.Header.Set("Content-Type", "application/json")
+
+// 	response, err := s.client.Do(request)
+// 	if err != nil {
+// 		return
+// 	} else {
+// 		defer response.Body.Close()
+// 		if response.StatusCode != 200 {
+// 			error_message := fmt.Sprintf("%d", response.StatusCode)
+// 			return errors.New(error_message)
+// 		}
+// 	}
+// 	return
+// }
+
 func (s *Session) GetDataSourceList() (ds []DataSource, err error) {
 	reqUrl := s.url + "/api/datasources"
 
@@ -116,25 +137,48 @@ func (s *Session) GetDataSourceList() (ds []DataSource, err error) {
 	return
 }
 
-// func main() {
+func (s *Session) GetDataSource(name string) (ds DataSource, err error) {
+	dslist, err := s.GetDataSourceList()
+	if err != nil {
+		return
+	}
 
-// 	url := "http://localhost:3000"
-// 	fmt.Println("URL:>", url)
+	for _, elem := range dslist {
+		if elem.Name == name {
+			ds = elem
+		}
+	}
+	return
+}
 
-// 	//initialize new http session
-// 	session := NewSession("admin", "admin", url)
+func (s *Session) GetDashboard(name string) (dashboard *bytes.Buffer) {
+	dashUrl := s.url + "/api/dashboards/db/" + name
+	response, err := s.client.Get(dashUrl)
+	if err != nil {
+		return
+	} else {
+		defer response.Body.Close()
+		if response.StatusCode != 200 {
+			return
+		}
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(response.Body)
+	return buf
+}
 
-// 	session.DoLogon()
-// 	session.GetDataSourceList()
+func (s *Session) UploadDashboard(dashboard string) {
+	dashUrl := s.url + "/api/dashboards/db"
 
-// 	ds := DataSource{Name: "nmon2influxdb",
-// 		Type:      "influxdb_08",
-// 		Access:    "direct",
-// 		Url:       "http://localhost:8086",
-// 		User:      "root",
-// 		Password:  "root",
-// 		Database:  "nmon2influxdb",
-// 		IsDefault: true}
+	content := `{ "dashboard": ` + dashboard + `,"overwrite": true }`
 
-// 	session.CreateDataSource(ds)
-// }
+	request, _ := http.NewRequest("POST", dashUrl, bytes.NewBuffer([]byte(content)))
+	request.Header.Set("Content-Type", "application/json")
+
+	s.client.Do(request)
+
+}
+
+func (s *Session) DeleteDashboard(name string) {
+
+}
