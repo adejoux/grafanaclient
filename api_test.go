@@ -8,7 +8,7 @@ var url = "http://localhost:3000"
 var ds = DataSource{Name: "testme",
 	Type:      "influxdb_08",
 	Access:    "direct",
-	Url:       "http://localhost:8086",
+	URL:       "http://localhost:8086",
 	User:      "root",
 	Password:  "root",
 	Database:  "test",
@@ -16,7 +16,7 @@ var ds = DataSource{Name: "testme",
 
 var dashboard = `{
         "id": null,
-        "title": "Production Overview",
+        "title": "new dashboard",
         "tags": [ "templated" ],
         "timezone": "browser",
         "rows": [
@@ -26,12 +26,6 @@ var dashboard = `{
         "schemaVersion": 6,
         "version": 0
       }`
-
-// func Test_BadConnect(t *testing.T) {
-// 	testDB := NewInfluxDB()
-// 	err := testDB.InitSession("locallhost", "8087", "testdb", "admin", "admin")
-// 	assert.NotNil(t, err, "We are expecting error and didn't got one")
-// }
 
 func Test_DoLogon(t *testing.T) {
 	session := NewSession("admin", "admin", url)
@@ -73,31 +67,41 @@ func Test_GetDataSource(t *testing.T) {
 	assert.Equal(t, "testme", resDs.Name, "We are expecting to retrieve testme DataSource and didn't get it")
 }
 
-func Test_GetDashboard(t *testing.T) {
-	session := NewSession("admin", "admin", url)
-	err := session.DoLogon()
-	assert.Nil(t, err, "We are expecting no error and got one when Login")
-
-	dashboard := session.GetDashboard("new-dashboard")
-	assert.NotNil(t, dashboard, "We are expecting to receive a dashboard")
-
-}
-
 func Test_CreateDashboard(t *testing.T) {
 	session := NewSession("admin", "admin", url)
 	err := session.DoLogon()
 	assert.Nil(t, err, "We are expecting no error and got one when Login")
 
-	session.UploadDashboard(dashboard)
+	session.UploadDashboardString(dashboard, true)
 }
 
-// func Test_DeleteDataSource(t *testing.T) {
-// 	session := NewSession("admin", "admin", url)
-// 	err := session.DoLogon()
-// 	assert.Nil(t, err, "We are expecting no error and got one when Login")
+func Test_GetDashboard(t *testing.T) {
+	session := NewSession("admin", "admin", url)
+	err := session.DoLogon()
+	assert.Nil(t, err, "We are expecting no error and got one when Login")
 
-// 	resDs, err := session.GetDataSource("testme")
+	dashboard, err := session.GetDashboard("new-dashboard")
+	assert.Nil(t, err, "We are expecting no error and got one when getting dashboard")
+	assert.NotNil(t, dashboard, "We are expecting to receive a dashboard")
 
-// 	err = session.DeleteDataSource(resDs)
-// 	assert.Nil(t, err, "We are expecting no error and got one when Deleting")
-// }
+}
+
+func Test_DeleteDataSource(t *testing.T) {
+	session := NewSession("admin", "admin", url)
+	err := session.DoLogon()
+	assert.Nil(t, err, "We are expecting no error and got one when Login")
+
+	resDs, err := session.GetDataSource("testme")
+
+	err = session.DeleteDataSource(resDs)
+	assert.Nil(t, err, "We are expecting no error and got one when Deleting")
+}
+
+func Test_DeleteDashboard(t *testing.T) {
+	session := NewSession("admin", "admin", url)
+	err := session.DoLogon()
+	assert.Nil(t, err, "We are expecting no error and got one when Login")
+
+	err = session.DeleteDashboard("new-dashboard")
+	assert.Nil(t, err, "We are expecting no error and got one when Deleting")
+}
