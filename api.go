@@ -149,16 +149,17 @@ type Row struct {
 
 // A Panel is a component of a Row. It can be a chart, a text or a single stat panel
 type Panel struct {
-	Content  string   `json:"content"`
-	Editable bool     `json:"editable"`
-	Error    bool     `json:"error"`
-	ID       int      `json:"id"`
-	Mode     string   `json:"mode"`
-	Span     int      `json:"span"`
-	Style    struct{} `json:"style"`
-	Title    string   `json:"title"`
-	Type     string   `json:"type"`
-	Targets  []Target `json:"targets"`
+	Content    string   `json:"content"`
+	Editable   bool     `json:"editable"`
+	Error      bool     `json:"error"`
+	ID         int      `json:"id"`
+	Mode       string   `json:"mode"`
+	Span       int      `json:"span"`
+	Style      struct{} `json:"style"`
+	Title      string   `json:"title"`
+	Type       string   `json:"type"`
+	DataSource string   `json:"datasource"`
+	Targets    []Target `json:"targets"`
 }
 
 // A Target specify the metrics used by the Panel
