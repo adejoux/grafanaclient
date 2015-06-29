@@ -1,0 +1,23 @@
+title = "new dashboard"
+
+[[row]]
+title = "DISKWRITE"
+
+    [[row.panel]]
+    serie = "lpar1_DISKWRITE"
+    fields = ["hdisk1", "hdisk2"]
+
+    [[row.panel]]
+    serie = "lpar2_DISKWRITE"
+    fields = ["hdisk3", "hdisk4"]
+
+[[row]]
+title = "DISKREAD"
+
+    [[row.panel]]
+    serie = "lpar1_DISKREAD"
+    fields = ["hdisk1", "hdisk2"]
+
+    [[row.panel]]
+    serie = "lpar2_DISKREAD"
+    fields = ["hdisk3", "hdisk4"]

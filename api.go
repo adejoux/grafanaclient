@@ -19,11 +19,32 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/naoina/toml"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
 )
+
+// TmplDashboard is a structure to handle TOML template file
+type TmplDashboard struct {
+	Title string
+	Rows  []TmplRow `toml:"row"`
+}
+
+// TmplRow is a structure to handle rows in TOML template file
+type TmplRow struct {
+	Title  string
+	Panels []TmplPanel `toml:"panel"`
+}
+
+// TmplPanel is a structure to handle TOML template file
+type TmplPanel struct {
+	Serie  string
+	Fields []string
+}
 
 // GrafanaError is a error structure to handle error messages in this library
 type GrafanaError struct {
@@ -159,6 +180,7 @@ type Panel struct {
 	Title      string   `json:"title"`
 	Type       string   `json:"type"`
 	DataSource string   `json:"datasource"`
+	Fill       int      `json:"fill"`
 	Targets    []Target `json:"targets"`
 }
 
@@ -342,4 +364,60 @@ func (s *Session) DeleteDashboard(name string) (err error) {
 	reqURL := fmt.Sprintf("%s/api/dashboards/db/%s", s.url, slug)
 	_, err = s.httpRequest("DELETE", reqURL, nil)
 	return
+}
+
+func ConvertTemplate(file string) (dashboard Dashboard, err error) {
+	f, err := os.Open(file)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	buf, err := ioutil.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+	var template TmplDashboard
+	if err := toml.Unmarshal(buf, &template); err != nil {
+		panic(err)
+	}
+
+	dashboard.Title = template.Title
+
+	for _, tmplRow := range template.Rows {
+		var row Row
+		row.Title = tmplRow.Title
+		row.Height = "200px"
+		row.Editable = true
+		for _, tmplPanel := range tmplRow.Panels {
+			var panel Panel
+			panel.Span = 6
+			panel.Type = "graph"
+			panel.Title = tmplPanel.Serie
+			panel.Editable = true
+			panel.DataSource = "nmon2influxdb"
+			panel.Fill = 0
+			for _, field := range tmplPanel.Fields {
+				var target Target
+				target.Alias = field
+				target.Column = field
+				target.Function = "mean"
+				target.Series = tmplPanel.Serie
+				target.RawQuery = false
+				target.Query = fmt.Sprintf("select mean(\"%s\") from \"%s\" where $timeFilter group by time($interval) order asc", field, tmplPanel.Serie)
+				panel.Targets = append(panel.Targets, target)
+			}
+			row.Panels = append(row.Panels, panel)
+		}
+		dashboard.Rows = append(dashboard.Rows, row)
+
+	}
+
+	var gtime GTime
+
+	gtime.To = "now"
+	gtime.From = "now - 1d"
+
+	dashboard.GTime = gtime
+	return
+
 }
