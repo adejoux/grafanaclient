@@ -26,25 +26,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"reflect"
 )
-
-// TmplDashboard is a structure to handle TOML template file
-type TmplDashboard struct {
-	Title string
-	Rows  []TmplRow `toml:"row"`
-}
-
-// TmplRow is a structure to handle rows in TOML template file
-type TmplRow struct {
-	Title  string
-	Panels []TmplPanel `toml:"panel"`
-}
-
-// TmplPanel is a structure to handle TOML template file
-type TmplPanel struct {
-	Serie  string
-	Fields []string
-}
 
 // GrafanaError is a error structure to handle error messages in this library
 type GrafanaError struct {
@@ -135,10 +118,16 @@ type Dashboard struct {
 	Templating      Template      `json:"templating"`
 	Tags            []interface{} `json:"tags"`
 	GTime           GTime         `json:"time"`
-	Rows            []Row         `json:"rows"`
+	Rows            []Row         `json:"rows" toml:"row"`
 	Title           string        `json:"title"`
 	Version         int           `json:"version"`
 	Timezone        string        `json:"timezone"`
+}
+
+func (d *Dashboard) UnmarshalTOML([]byte) error {
+	_, err := fmt.Printf("tata\n")
+	os.Exit(1)
+	return err
 }
 
 // A Template is a part of Dashboard
@@ -159,13 +148,31 @@ type Annotation struct {
 	List   []interface{} `json:"list"`
 }
 
-// A Row is a dashboard Row it can contians multiple panels
+// A Row is a dashboard Row it can contains multiple panels
 type Row struct {
 	Collapse bool    `json:"collapse"`
 	Editable bool    `json:"editable"`
 	Height   string  `json:"height"`
-	Panels   []Panel `json:"panels"`
+	Panels   []Panel `json:"panels" toml:"panel"`
 	Title    string  `json:"title"`
+}
+
+func (row *Row) UnmarshalTOML(data []byte) error {
+	fmt.Printf("toto\n")
+	os.Exit(1)
+
+	r := NewRow()
+	err := toml.Unmarshal(data, &r)
+	if err != nil {
+		return err
+	}
+	*row = r
+	return err
+}
+
+func NewRow() Row {
+	fmt.Printf("toto\n")
+	return Row{Height: "200px", Editable: true}
 }
 
 // A Panel is a component of a Row. It can be a chart, a text or a single stat panel
@@ -181,18 +188,41 @@ type Panel struct {
 	Type       string   `json:"type"`
 	DataSource string   `json:"datasource"`
 	Fill       int      `json:"fill"`
-	Targets    []Target `json:"targets"`
+	Targets    []Target `json:"targets" toml:"target"`
+}
+
+func NewPanel() Panel {
+	return Panel{Span: 6,
+		Type:       "graph",
+		Editable:   true,
+		DataSource: "nmon2influxdb",
+		Fill:       0}
 }
 
 // A Target specify the metrics used by the Panel
 type Target struct {
-	Alias    string `json:"alias"`
-	Column   string `json:"column"`
-	Function string `json:"function"`
-	Hide     bool   `json:"hide"`
-	Query    string `json:"query"`
-	RawQuery bool   `json:"rawQuery"`
-	Series   string `json:"series"`
+	Alias    string   `json:"alias"`
+	Column   string   `json:"column"`
+	Function string   `json:"function"`
+	Hide     bool     `json:"hide"`
+	Query    string   `json:"query"`
+	RawQuery bool     `json:"rawQuery"`
+	Series   string   `json:"series"`
+	Fields   []string `json:"-"`
+}
+
+func (target *Target) UnmarshalTOML(b []byte) (err error) {
+	t := NewTarget()
+	err = toml.Unmarshal(b, &t)
+	if err != nil {
+		return
+	}
+	*target = t
+	return
+}
+
+func NewTarget() Target {
+	return Target{Function: "mean", RawQuery: false}
 }
 
 // NewSession creates a new http connection .
@@ -376,48 +406,38 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 	if err != nil {
 		panic(err)
 	}
-	var template TmplDashboard
-	if err := toml.Unmarshal(buf, &template); err != nil {
+
+	if err := toml.Unmarshal(buf, &dashboard); err != nil {
 		panic(err)
 	}
 
-	dashboard.Title = template.Title
+	fmt.Println(dashboard)
+	// for _, tmplRow := range template.Rows {
+	// 	var row Row
 
-	for _, tmplRow := range template.Rows {
-		var row Row
-		row.Title = tmplRow.Title
-		row.Height = "200px"
-		row.Editable = true
-		for _, tmplPanel := range tmplRow.Panels {
-			var panel Panel
-			panel.Span = 6
-			panel.Type = "graph"
-			panel.Title = tmplPanel.Serie
-			panel.Editable = true
-			panel.DataSource = "nmon2influxdb"
-			panel.Fill = 0
-			for _, field := range tmplPanel.Fields {
-				var target Target
-				target.Alias = field
-				target.Column = field
-				target.Function = "mean"
-				target.Series = tmplPanel.Serie
-				target.RawQuery = false
-				target.Query = fmt.Sprintf("select mean(\"%s\") from \"%s\" where $timeFilter group by time($interval) order asc", field, tmplPanel.Serie)
-				panel.Targets = append(panel.Targets, target)
-			}
-			row.Panels = append(row.Panels, panel)
-		}
-		dashboard.Rows = append(dashboard.Rows, row)
+	// 	for _, tmplPanel := range tmplRow.Panels {
+	// 		var panel Panel
 
-	}
+	// 		for _, field := range tmplPanel.Fields {
+	// 			var target Target
+	// 			target.Alias = field
+	// 			target.Column = field
+	// 			target.Series = tmplPanel.Serie
+	// 			target.Query = fmt.Sprintf("select mean(\"%s\") from \"%s\" where $timeFilter group by time($interval) order asc", field, tmplPanel.Serie)
+	// 			panel.Targets = append(panel.Targets, target)
+	// 		}
+	// 		row.Panels = append(row.Panels, panel)
+	// 	}
+	// 	dashboard.Rows = append(dashboard.Rows, row)
 
-	var gtime GTime
+	// }
 
-	gtime.To = "now"
-	gtime.From = "now - 1d"
+	// var gtime GTime
 
-	dashboard.GTime = gtime
+	// gtime.To = "now"
+	// gtime.From = "now - 1d"
+
+	// dashboard.GTime = gtime
 	return
 
 }

@@ -91,7 +91,7 @@ func Test_ConvertTemplate(t *testing.T) {
 	err := session.DoLogon()
 	assert.Nil(t, err, "We are expecting no error and got one when Login")
 
-	dashboard, err := session.ConvertTemplate("example.toml")
+	dashboard, err := ConvertTemplate("example.toml")
 	assert.Nil(t, err, "We are expecting no error and got one when Converting template")
 	assert.NotNil(t, dashboard, "We are expecting to receive a dashboard")
 }
