@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/imdario/mergo"
 	"github.com/naoina/toml"
 	"io"
 	"io/ioutil"
@@ -26,7 +27,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
-	"reflect"
 )
 
 // GrafanaError is a error structure to handle error messages in this library
@@ -124,12 +124,6 @@ type Dashboard struct {
 	Timezone        string        `json:"timezone"`
 }
 
-func (d *Dashboard) UnmarshalTOML([]byte) error {
-	_, err := fmt.Printf("tata\n")
-	os.Exit(1)
-	return err
-}
-
 // A Template is a part of Dashboard
 type Template struct {
 	List []interface{} `json:"list"`
@@ -157,24 +151,6 @@ type Row struct {
 	Title    string  `json:"title"`
 }
 
-func (row *Row) UnmarshalTOML(data []byte) error {
-	fmt.Printf("toto\n")
-	os.Exit(1)
-
-	r := NewRow()
-	err := toml.Unmarshal(data, &r)
-	if err != nil {
-		return err
-	}
-	*row = r
-	return err
-}
-
-func NewRow() Row {
-	fmt.Printf("toto\n")
-	return Row{Height: "200px", Editable: true}
-}
-
 // A Panel is a component of a Row. It can be a chart, a text or a single stat panel
 type Panel struct {
 	Content    string   `json:"content"`
@@ -188,9 +164,34 @@ type Panel struct {
 	Type       string   `json:"type"`
 	DataSource string   `json:"datasource"`
 	Fill       int      `json:"fill"`
+	Stack      bool     `json:"stack"`
 	Targets    []Target `json:"targets" toml:"target"`
+	Metrics    []Metric `json:"-" toml:"metric"`
 }
 
+// A Target specify the metrics used by the Panel
+type Target struct {
+	Alias    string `json:"alias"`
+	Column   string `json:"column"`
+	Function string `json:"function"`
+	Hide     bool   `json:"hide"`
+	Query    string `json:"query"`
+	RawQuery bool   `json:"rawQuery"`
+	Series   string `json:"series"`
+}
+
+// A Metric is only used in TOML templates to define the targets to create
+type Metric struct {
+	Serie  string
+	Fields []string
+}
+
+// NewRow create a new Grafana row with default values
+func NewRow() Row {
+	return Row{Height: "200px", Editable: true}
+}
+
+// NewPanel create a new Grafana panel with default values
 func NewPanel() Panel {
 	return Panel{Span: 6,
 		Type:       "graph",
@@ -199,30 +200,14 @@ func NewPanel() Panel {
 		Fill:       0}
 }
 
-// A Target specify the metrics used by the Panel
-type Target struct {
-	Alias    string   `json:"alias"`
-	Column   string   `json:"column"`
-	Function string   `json:"function"`
-	Hide     bool     `json:"hide"`
-	Query    string   `json:"query"`
-	RawQuery bool     `json:"rawQuery"`
-	Series   string   `json:"series"`
-	Fields   []string `json:"-"`
-}
-
-func (target *Target) UnmarshalTOML(b []byte) (err error) {
-	t := NewTarget()
-	err = toml.Unmarshal(b, &t)
-	if err != nil {
-		return
-	}
-	*target = t
-	return
-}
-
+// NewPanel create a new Grafana target with default values
 func NewTarget() Target {
 	return Target{Function: "mean", RawQuery: false}
+}
+
+// NewGTime create a default time window for Grafana
+func NewGTime() GTime {
+	return GTime{From: "now-24h", To: "now"}
 }
 
 // NewSession creates a new http connection .
@@ -408,36 +393,37 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 	}
 
 	if err := toml.Unmarshal(buf, &dashboard); err != nil {
-		panic(err)
+		fmt.Printf("ERROR: %s", err.Error())
+		os.Exit(1)
 	}
 
-	fmt.Println(dashboard)
-	// for _, tmplRow := range template.Rows {
-	// 	var row Row
+	defRow := NewRow()
+	defPanel := NewPanel()
 
-	// 	for _, tmplPanel := range tmplRow.Panels {
-	// 		var panel Panel
+	for i := range dashboard.Rows {
+		row := &dashboard.Rows[i]
+		if err := mergo.Merge(row, defRow); err != nil {
+			panic(err)
+		}
+		for j := range row.Panels {
+			panel := &row.Panels[j]
+			if err := mergo.Merge(panel, defPanel); err != nil {
+				panic(err)
+			}
+			for _, metric := range panel.Metrics {
+				target := NewTarget()
+				for _, field := range metric.Fields {
+					target.Alias = field
+					target.Column = field
+					target.Series = metric.Serie
+					target.Query = fmt.Sprintf("select %s(\"%s\") from \"%s\" where $timeFilter group by time($interval) order asc", field, target.Function, metric.Serie)
+					panel.Targets = append(panel.Targets, target)
+				}
+			}
+		}
+	}
 
-	// 		for _, field := range tmplPanel.Fields {
-	// 			var target Target
-	// 			target.Alias = field
-	// 			target.Column = field
-	// 			target.Series = tmplPanel.Serie
-	// 			target.Query = fmt.Sprintf("select mean(\"%s\") from \"%s\" where $timeFilter group by time($interval) order asc", field, tmplPanel.Serie)
-	// 			panel.Targets = append(panel.Targets, target)
-	// 		}
-	// 		row.Panels = append(row.Panels, panel)
-	// 	}
-	// 	dashboard.Rows = append(dashboard.Rows, row)
-
-	// }
-
-	// var gtime GTime
-
-	// gtime.To = "now"
-	// gtime.From = "now - 1d"
-
-	// dashboard.GTime = gtime
+	dashboard.GTime = NewGTime()
 	return
 
 }

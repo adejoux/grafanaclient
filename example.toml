@@ -3,23 +3,25 @@ title = "new dashboard"
 [[row]]
 title = "DISKWRITE"
     [[row.panel]]
-        [[row.panel.target]]
-            series = "lpar1_DISKWRITE"
+        stack = true
+        [[row.panel.metric]]
+            serie = "lpar1_DISKWRITE"
             fields = ["hdisk1", "hdisk2"]
 
     [[row.panel]]
-        [[row.panel.target]]
-            series = "lpar2_DISKWRITE"
+        stack = true
+        [[row.panel.metric]]
+            serie = "lpar2_DISKWRITE"
             fields = ["hdisk3", "hdisk4"]
 
 [[row]]
 title = "DISKREAD"
     [[row.panel]]
-        [[row.panel.target]]
-            series = "lpar1_DISKREAD"
+        [[row.panel.metric]]
+            serie = "lpar1_DISKREAD"
             fields = ["hdisk1", "hdisk2"]
 
     [[row.panel]]
-        [[row.panel.target]]
-            series = "lpar2_DISKREAD"
+        [[row.panel.metric]]
+            serie = "lpar2_DISKREAD"
             fields = ["hdisk3", "hdisk4"]

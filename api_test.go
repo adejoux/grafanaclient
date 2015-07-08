@@ -72,7 +72,8 @@ func Test_CreateDashboard(t *testing.T) {
 	err := session.DoLogon()
 	assert.Nil(t, err, "We are expecting no error and got one when Login")
 
-	session.UploadDashboardString(dashboard, true)
+	err = session.UploadDashboardString(dashboard, true)
+	assert.Nil(t, err, "We are expecting no error and got one when Uploading")
 }
 
 func Test_GetDashboard(t *testing.T) {
@@ -94,6 +95,18 @@ func Test_ConvertTemplate(t *testing.T) {
 	dashboard, err := ConvertTemplate("example.toml")
 	assert.Nil(t, err, "We are expecting no error and got one when Converting template")
 	assert.NotNil(t, dashboard, "We are expecting to receive a dashboard")
+}
+
+func Test_UploadDasboardFromTemplate(t *testing.T) {
+	session := NewSession("admin", "admin", url)
+	err := session.DoLogon()
+	assert.Nil(t, err, "We are expecting no error and got one when Login")
+
+	dashboard, err := ConvertTemplate("example.toml")
+	assert.Nil(t, err, "We are expecting no error and got one when Converting template")
+	assert.NotNil(t, dashboard, "We are expecting to receive a dashboard")
+	err = session.UploadDashboard(dashboard, true)
+	assert.Nil(t, err, "We are expecting no error and got one when Uploading")
 }
 
 func Test_DeleteDataSource(t *testing.T) {
