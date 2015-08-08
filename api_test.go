@@ -6,7 +6,7 @@ import "testing"
 var url = "http://localhost:3000"
 
 var ds = DataSource{Name: "testme",
-	Type:      "influxdb_08",
+	Type:      "influxdb_09",
 	Access:    "direct",
 	URL:       "http://localhost:8086",
 	User:      "root",

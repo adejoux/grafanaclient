@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"strings"
 )
 
 // GrafanaError is a error structure to handle error messages in this library
@@ -153,37 +154,61 @@ type Row struct {
 
 // A Panel is a component of a Row. It can be a chart, a text or a single stat panel
 type Panel struct {
-	Content    string   `json:"content"`
-	Editable   bool     `json:"editable"`
-	Error      bool     `json:"error"`
-	ID         int      `json:"id"`
-	Mode       string   `json:"mode"`
-	Span       int      `json:"span"`
-	Style      struct{} `json:"style"`
-	Title      string   `json:"title"`
-	Type       string   `json:"type"`
-	DataSource string   `json:"datasource"`
-	Fill       int      `json:"fill"`
-	Stack      bool     `json:"stack"`
-	Targets    []Target `json:"targets" toml:"target"`
-	Metrics    []Metric `json:"-" toml:"metric"`
+	Content         string           `json:"content"`
+	Editable        bool             `json:"editable"`
+	Error           bool             `json:"error"`
+	ID              int              `json:"id"`
+	Mode            string           `json:"mode"`
+	Span            int              `json:"span"`
+	Style           struct{}         `json:"style"`
+	Title           string           `json:"title"`
+	Type            string           `json:"type"`
+	DataSource      string           `json:"datasource"`
+	Fill            int              `json:"fill"`
+	Stack           bool             `json:"stack"`
+	Targets         []Target         `json:"targets" toml:"target"`
+	Metrics         []Metric         `json:"-" toml:"metric"`
+	SeriesOverrides []SeriesOverride `json:"seriesOverrides,omitempty" toml:"override"`
+	Tooltip         Tooltip          `json:"tooltip,omitempty"`
 }
 
 // A Target specify the metrics used by the Panel
 type Target struct {
-	Alias    string `json:"alias"`
-	Column   string `json:"column"`
-	Function string `json:"function"`
-	Hide     bool   `json:"hide"`
-	Query    string `json:"query"`
-	RawQuery bool   `json:"rawQuery"`
-	Series   string `json:"series"`
+	Alias       string   `json:"alias"`
+	Function    string   `json:"function"`
+	Hide        bool     `json:"hide"`
+	Query       string   `json:"query"`
+	RawQuery    bool     `json:"rawQuery"`
+	Measurement string   `json:"measurement"`
+	GroupByTags []string `json:"groupByTags"`
+	Tags        []Tag    `json:"tags"`
 }
 
 // A Metric is only used in TOML templates to define the targets to create
 type Metric struct {
-	Serie  string
-	Fields []string
+	Measurement string
+	Fields      []string
+	Hosts       []string
+	Alias       []string
+}
+
+// A serieOverride allows to setup specific override by serie
+type SeriesOverride struct {
+	Alias string `json:"alias"`
+	Stack bool   `json:"stack"`
+	Fill  int    `json:"fill"`
+}
+
+// A Tag allows to filter the values
+type Tag struct {
+	Condition string `json:"condition"`
+	Key       string `json:"key"`
+	Value     string `json:"value"`
+}
+
+// A Tooltip allow to setup some graphic display options
+type Tooltip struct {
+	ValueType string `json:"value_type" toml:"value_type"`
 }
 
 // NewRow create a new Grafana row with default values
@@ -202,7 +227,7 @@ func NewPanel() Panel {
 
 // NewPanel create a new Grafana target with default values
 func NewTarget() Target {
-	return Target{Function: "mean", RawQuery: false}
+	return Target{Function: "mean", RawQuery: false, Alias: "$tag_host $tag_name"}
 }
 
 // NewGTime create a default time window for Grafana
@@ -267,7 +292,7 @@ func (s *Session) CreateDataSource(ds DataSource) (err error) {
 	reqURL := s.url + "/api/datasources"
 
 	jsonStr, _ := json.Marshal(ds)
-	_, err = s.httpRequest("PUT", reqURL, bytes.NewBuffer(jsonStr))
+	_, err = s.httpRequest("POST", reqURL, bytes.NewBuffer(jsonStr))
 
 	return
 }
@@ -392,6 +417,7 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 		panic(err)
 	}
 
+	dashboard.Editable = true
 	if err := toml.Unmarshal(buf, &dashboard); err != nil {
 		fmt.Printf("ERROR: %s", err.Error())
 		os.Exit(1)
@@ -412,18 +438,26 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 			}
 			for _, metric := range panel.Metrics {
 				target := NewTarget()
-				for _, field := range metric.Fields {
-					target.Alias = field
-					target.Column = field
-					target.Series = metric.Serie
-					target.Query = fmt.Sprintf("select %s(\"%s\") from \"%s\" where $timeFilter group by time($interval) order asc", field, target.Function, metric.Serie)
-					panel.Targets = append(panel.Targets, target)
-				}
+				fields := strings.Join(metric.Fields, "|")
+				hosts := strings.Join(metric.Hosts, "|")
+
+				target.Measurement = metric.Measurement
+				target.Query = fmt.Sprintf("select mean(\"value\") from \"%s\" where \"name\" =~ /%s$/ AND \"host\" =~ /%s$/ AND $timeFilter group by time($interval) order asc", metric.Measurement, fields, hosts)
+
+				// adding tags
+				hostTag := Tag{Key: "host", Value: "/" + hosts + "/"}
+				target.Tags = append(target.Tags, hostTag)
+				fieldsTag := Tag{Key: "name", Value: "/" + fields + "/", Condition: "AND"}
+				target.Tags = append(target.Tags, fieldsTag)
+				target.GroupByTags = []string{"name", "host"}
+				panel.Targets = append(panel.Targets, target)
 			}
 		}
 	}
 
-	dashboard.GTime = NewGTime()
+	if dashboard.GTime == (GTime{}) {
+		dashboard.GTime = NewGTime()
+	}
 	return
 
 }

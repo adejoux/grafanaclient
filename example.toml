@@ -5,23 +5,26 @@ title = "DISKWRITE"
     [[row.panel]]
         stack = true
         [[row.panel.metric]]
-            serie = "lpar1_DISKWRITE"
+            measurement = "DISKWRITE"
+            hosts   = ["lpar1"]
             fields = ["hdisk1", "hdisk2"]
 
     [[row.panel]]
         stack = true
         [[row.panel.metric]]
-            serie = "lpar2_DISKWRITE"
+            measurement = "DISKWRITE"
+            hosts = ["lpar2"]
             fields = ["hdisk3", "hdisk4"]
 
 [[row]]
 title = "DISKREAD"
     [[row.panel]]
         [[row.panel.metric]]
-            serie = "lpar1_DISKREAD"
+            measurement = "DISKREAD"
+            hosts = ["lpar1"]
             fields = ["hdisk1", "hdisk2"]
-
     [[row.panel]]
         [[row.panel.metric]]
-            serie = "lpar2_DISKREAD"
+            measurement = "DISKREAD"
+            hosts = ["lpar2"]
             fields = ["hdisk3", "hdisk4"]
