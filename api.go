@@ -442,7 +442,6 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 				hosts := strings.Join(metric.Hosts, "|")
 
 				target.Measurement = metric.Measurement
-				target.Query = fmt.Sprintf("select mean(\"value\") from \"%s\" where \"name\" =~ /%s$/ AND \"host\" =~ /%s$/ AND $timeFilter group by time($interval) order asc", metric.Measurement, fields, hosts)
 
 				// adding tags
 				hostTag := Tag{Key: "host", Value: "/" + hosts + "/"}
