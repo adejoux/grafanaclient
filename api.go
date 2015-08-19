@@ -82,6 +82,26 @@ type DataSource struct {
 	IsDefault         bool   `json:"isDefault"`
 }
 
+// A DataSource Plugin contains the json structure of Grafana DataSource plugin
+type DataSourcePlugin struct {
+	Annotations bool   `json:"annotations"`
+	Module      string `json:"module"`
+	Name        string `json:"name"`
+	Partials    PluginPartial
+	PluginType  string `json:"pluginType"`
+	ServiceName string `json:"serviceName"`
+	Type        string `json:"type"`
+}
+
+// A DataSourcePlugins contains a map of DataSourcePlugin
+type DataSourcePlugins map[string]DataSourcePlugin
+
+// A PluginPartial contains the json structure of Grafana DataSource Plugin Partial
+type PluginPartial struct {
+	Annotations string `json:"annotations"`
+	Config      string `json:"config"`
+}
+
 // A DashboardUploader encapsulates a complete Dashboard
 type DashboardUploader struct {
 	Dashboard Dashboard `json:"dashboard"`
@@ -310,7 +330,22 @@ func (s *Session) DeleteDataSource(ds DataSource) (err error) {
 	return
 }
 
-// GetDataSourceList return a listof existing Grafana DataSources.
+// GetDataSourceList return a list of existing Grafana DataSources.
+// It return a array of DataSource struct.
+// It returns a error if it cannot get the DataSource list.
+func (s *Session) GetDataSourcePlugins() (plugins DataSourcePlugins, err error) {
+	reqURL := s.url + "/api/datasources/plugins"
+
+	body, err := s.httpRequest("GET", reqURL, nil)
+	if err != nil {
+		return
+	}
+	dec := json.NewDecoder(body)
+	err = dec.Decode(&plugins)
+	return
+}
+
+// GetDataSourceList return a list of existing Grafana DataSources.
 // It return a array of DataSource struct.
 // It returns a error if it cannot get the DataSource list.
 func (s *Session) GetDataSourceList() (ds []DataSource, err error) {

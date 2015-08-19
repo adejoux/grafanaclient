@@ -6,7 +6,7 @@ import "testing"
 var url = "http://localhost:3000"
 
 var ds = DataSource{Name: "testme",
-	Type:      "influxdb_09",
+	Type:      "influxdb",
 	Access:    "direct",
 	URL:       "http://localhost:8086",
 	User:      "root",
@@ -31,6 +31,15 @@ func Test_DoLogon(t *testing.T) {
 	session := NewSession("admin", "admin", url)
 	err := session.DoLogon()
 	assert.Nil(t, err, "We are expecting no error and got one")
+}
+
+func Test_GetDataSourcePlugins(t *testing.T) {
+	session := NewSession("admin", "admin", url)
+	err := session.DoLogon()
+	assert.Nil(t, err, "We are expecting no error and got one")
+	plugins, err := session.GetDataSourcePlugins()
+	assert.Nil(t, err, "We are expecting no error and got one when getting DataSource Plugins")
+	assert.NotNil(t, plugins["influxdb"], "We didn't find a plugin for InfluxDB in DataSource")
 }
 
 func Test_CreateDataSource(t *testing.T) {
