@@ -136,18 +136,13 @@ type Dashboard struct {
 	SchemaVersion   int           `json:"schemaVersion"`
 	SharedCrosshair bool          `json:"sharedCrosshair"`
 	Style           string        `json:"style"`
-	Templating      Template      `json:"templating"`
+	Templating      Templating    `json:"templating,omitempty" toml:"templates"`
 	Tags            []interface{} `json:"tags"`
-	GTime           GTime         `json:"time"`
+	GTime           GTime         `json:"time" toml:"time"`
 	Rows            []Row         `json:"rows" toml:"row"`
 	Title           string        `json:"title"`
 	Version         int           `json:"version"`
 	Timezone        string        `json:"timezone"`
-}
-
-// A Template is a part of Dashboard
-type Template struct {
-	List []interface{} `json:"list"`
 }
 
 // A GTime contains the Dadhboard informations on the time frame of the data.
@@ -156,6 +151,39 @@ type GTime struct {
 	Now  bool   `json:"now"`
 	To   string `json:"to"`
 }
+
+// A Templating contains a List of Templates usable in Dashboard
+type Templating struct {
+	List Templates `json:"list" toml:"template"`
+}
+
+//A template define a variable usable in Grafana
+type Template struct {
+	AllFormat string `json:"allFormat"`
+	Current   struct {
+		Tags  []interface{} `json:"tags"`
+		Text  string        `json:"text"`
+		Value string        `json:"value"`
+	} `json:"current,omitempty"`
+	Datasource  string `json:"datasource"`
+	IncludeAll  bool   `json:"includeAll"`
+	Multi       bool   `json:"multi"`
+	MultiFormat string `json:"multiFormat"`
+	Name        string `json:"name"`
+	Options     []struct {
+		Selected bool   `json:"selected"`
+		Text     string `json:"text"`
+		Value    string `json:"value"`
+	} `json:"options,omitempty"`
+	Query         string `json:"query"`
+	Refresh       bool   `json:"refresh"`
+	RefreshOnLoad bool   `json:"refresh_on_load"`
+	Regex         string `json:"regex"`
+	Type          string `json:"type"`
+}
+
+// A templates is an Array of Template
+type Templates []Template
 
 // A Annotation contains the current annotations of a dashboard
 type Annotation struct {
@@ -253,6 +281,11 @@ func NewTarget() Target {
 // NewGTime create a default time window for Grafana
 func NewGTime() GTime {
 	return GTime{From: "now-24h", To: "now"}
+}
+
+// NewTemplate create a default template for Grafana
+func NewTemplate() Template {
+	return Template{Type: "query", Refresh: true, Multi: true}
 }
 
 // NewSession creates a new http connection .
@@ -460,6 +493,16 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 
 	defRow := NewRow()
 	defPanel := NewPanel()
+
+	if len(dashboard.Templating.List) > 0 {
+		defTemplate := NewTemplate()
+		for i := range dashboard.Templating.List {
+			template := &dashboard.Templating.List[i]
+			if err := mergo.Merge(template, defTemplate); err != nil {
+				panic(err)
+			}
+		}
+	}
 
 	for i := range dashboard.Rows {
 		row := &dashboard.Rows[i]
