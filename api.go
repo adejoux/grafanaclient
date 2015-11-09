@@ -232,6 +232,18 @@ type Target struct {
 	Tags        []Tag    `json:"tags"`
 }
 
+func (target *Target) TagKeys() []string {
+
+	keys := make([]string, len(target.Tags))
+
+	for i, tag := range target.Tags {
+		keys[i] = tag.Key
+		i++
+	}
+
+	return keys
+}
+
 // A Metric is only used in TOML templates to define the targets to create
 type Metric struct {
 	Measurement string
