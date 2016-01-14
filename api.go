@@ -222,14 +222,25 @@ type Panel struct {
 
 // A Target specify the metrics used by the Panel
 type Target struct {
-	Alias       string   `json:"alias"`
-	Function    string   `json:"function"`
-	Hide        bool     `json:"hide"`
-	Query       string   `json:"query"`
-	RawQuery    bool     `json:"rawQuery"`
-	Measurement string   `json:"measurement"`
-	GroupByTags []string `json:"groupByTags"`
-	Tags        []Tag    `json:"tags"`
+	Alias       string    `json:"alias"`
+	Function    string    `json:"function"`
+	Hide        bool      `json:"hide"`
+	Query       string    `json:"query"`
+	RawQuery    bool      `json:"rawQuery"`
+	Measurement string    `json:"measurement"`
+	GroupByTags []string  `json:"groupByTags"`
+	GroupBy     []GroupBy `json:"groupBy"`
+	Tags        []Tag     `json:"tags"`
+}
+
+type GroupBy struct {
+	Type     string   `json:"type"`
+	Interval string   `json:"interval,omitempty"`
+	Params   []string `json:"params"`
+}
+
+func NewGroupBy() []GroupBy {
+	return []GroupBy{GroupBy{Type: "time", Interval: "auto"}}
 }
 
 func (target *Target) TagKeys() []string {
@@ -539,6 +550,9 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 				fieldsTag := Tag{Key: "name", Value: "/" + fields + "/", Condition: "AND"}
 				target.Tags = append(target.Tags, fieldsTag)
 				target.GroupByTags = []string{"name", "host"}
+				target.GroupBy = NewGroupBy()
+				target.GroupBy = append(target.GroupBy, GroupBy{Type: "tag", Params: []string{"name"}})
+				target.GroupBy = append(target.GroupBy, GroupBy{Type: "tag", Params: []string{"host"}})
 				panel.Targets = append(panel.Targets, target)
 			}
 		}
