@@ -218,6 +218,7 @@ type Panel struct {
 	Metrics         []Metric         `json:"-" toml:"metric"`
 	SeriesOverrides []SeriesOverride `json:"seriesOverrides,omitempty" toml:"override"`
 	Tooltip         Tooltip          `json:"tooltip,omitempty"`
+	PageSize        int              `json:"pageSize,omitempty" toml:"pageSize,omitempty"`
 }
 
 // A Target specify the metrics used by the Panel
@@ -231,6 +232,7 @@ type Target struct {
 	GroupByTags []string  `json:"groupByTags"`
 	GroupBy     []GroupBy `json:"groupBy"`
 	Tags        []Tag     `json:"tags"`
+	Transform   string    `json:"transform,omitempty" toml:"transform,omitempty"`
 }
 
 type GroupBy struct {
