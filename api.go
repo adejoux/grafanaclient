@@ -219,6 +219,9 @@ type Panel struct {
 	SeriesOverrides []SeriesOverride `json:"seriesOverrides,omitempty" toml:"override"`
 	Tooltip         Tooltip          `json:"tooltip,omitempty"`
 	PageSize        int              `json:"pageSize,omitempty" toml:"pageSize,omitempty"`
+	Legend          Legend           `json:"legend,omitempty"`
+	LeftYAxisLabel  string           `json:"leftYAxisLabel,omitempty"`
+	RightYAxisLabel string           `json:"rightYAxisLabel,omitempty"`
 }
 
 // A Target specify the metrics used by the Panel
@@ -233,6 +236,18 @@ type Target struct {
 	GroupBy     []GroupBy `json:"groupBy"`
 	Tags        []Tag     `json:"tags"`
 	Transform   string    `json:"transform,omitempty" toml:"transform,omitempty"`
+}
+
+// A Legend specify the legend options used by the Panel
+type Legend struct {
+	Show         bool `json:"show"`
+	Values       bool `json:"values"`
+	Min          bool `json:"min"`
+	Max          bool `json:"max"`
+	Current      bool `json:"current"`
+	Total        bool `json:"total"`
+	Avg          bool `json:"avg"`
+	AlignAsTable bool `json:"alignAsTable"`
 }
 
 type GroupBy struct {
@@ -267,9 +282,10 @@ type Metric struct {
 
 // A serieOverride allows to setup specific override by serie
 type SeriesOverride struct {
-	Alias string `json:"alias"`
-	Stack bool   `json:"stack"`
-	Fill  int    `json:"fill"`
+	Alias     string `json:"alias"`
+	Stack     bool   `json:"stack"`
+	Fill      int    `json:"fill"`
+	Transform string `json:"transform"`
 }
 
 // A Tag allows to filter the values
@@ -295,12 +311,23 @@ func NewPanel() Panel {
 		Type:       "graph",
 		Editable:   true,
 		DataSource: "nmon2influxdb",
-		Fill:       0}
+		Fill:       0,
+		Legend:     NewLegend()}
 }
 
-// NewPanel create a new Grafana target with default values
+// NewTarget create a new Grafana target with default values
 func NewTarget() Target {
 	return Target{Function: "mean", RawQuery: false, Alias: "$tag_host $tag_name"}
+}
+
+// NewPanel create a new Grafana legend with default values
+func NewLegend() Legend {
+	return Legend{Show: true}
+}
+
+// NewSeriesOverride create a new Grafana series override using the specified alias
+func NewSeriesOverride(alias string) SeriesOverride {
+	return SeriesOverride{Alias: alias}
 }
 
 // NewGTime create a default time window for Grafana
