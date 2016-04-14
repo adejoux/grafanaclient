@@ -71,7 +71,7 @@ func Test_GetDataSource(t *testing.T) {
 	err := session.DoLogon()
 	assert.Nil(t, err, "We are expecting no error and got one when Login")
 
-	resDs, err := session.GetDataSource("testme")
+	resDs, _ := session.GetDataSource("testme")
 
 	assert.Equal(t, "testme", resDs.Name, "We are expecting to retrieve testme DataSource and didn't get it")
 }

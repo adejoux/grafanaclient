@@ -19,8 +19,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/imdario/mergo"
-	"github.com/naoina/toml"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,6 +26,9 @@ import (
 	"net/http/cookiejar"
 	"os"
 	"strings"
+
+	"github.com/imdario/mergo"
+	"github.com/naoina/toml"
 )
 
 // GrafanaError is a error structure to handle error messages in this library
@@ -82,7 +83,7 @@ type DataSource struct {
 	IsDefault         bool   `json:"isDefault"`
 }
 
-// A DataSource Plugin contains the json structure of Grafana DataSource plugin
+// A DataSourcePlugin contains the json structure of Grafana DataSource plugin
 type DataSourcePlugin struct {
 	Annotations bool   `json:"annotations"`
 	Module      string `json:"module"`
@@ -92,6 +93,35 @@ type DataSourcePlugin struct {
 	ServiceName string `json:"serviceName"`
 	Type        string `json:"type"`
 }
+
+//Plugin is a Grafana 3.0 structure for plugins
+type Plugin struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	ID      string `json:"id"`
+	Enabled bool   `json:"enabled"`
+	Pinned  bool   `json:"pinned"`
+	Info    struct {
+		Author struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"author"`
+		Description string      `json:"description"`
+		Links       interface{} `json:"links"`
+		Logos       struct {
+			Small string `json:"small"`
+			Large string `json:"large"`
+		} `json:"logos"`
+		Screenshots interface{} `json:"screenshots"`
+		Version     string      `json:"version"`
+		Updated     string      `json:"updated"`
+	} `json:"info"`
+	LatestVersion string `json:"latestVersion"`
+	HasUpdate     bool   `json:"hasUpdate"`
+}
+
+// Plugins is an array of Plugin
+type Plugins []Plugin
 
 // A DataSourcePlugins contains a map of DataSourcePlugin
 type DataSourcePlugins map[string]DataSourcePlugin
@@ -157,7 +187,7 @@ type Templating struct {
 	List Templates `json:"list" toml:"template"`
 }
 
-//A template define a variable usable in Grafana
+//Template define a variable usable in Grafana
 type Template struct {
 	AllFormat string `json:"allFormat"`
 	Current   struct {
@@ -182,7 +212,7 @@ type Template struct {
 	Type          string `json:"type"`
 }
 
-// A templates is an Array of Template
+//Templates is an Array of Template
 type Templates []Template
 
 // A Annotation contains the current annotations of a dashboard
@@ -250,16 +280,19 @@ type Legend struct {
 	AlignAsTable bool `json:"alignAsTable"`
 }
 
+// A GroupBy struct is used to setup the group by part of the query
 type GroupBy struct {
 	Type     string   `json:"type"`
 	Interval string   `json:"interval,omitempty"`
 	Params   []string `json:"params"`
 }
 
+//NewGroupBy initialize a GroupBy structure
 func NewGroupBy() []GroupBy {
 	return []GroupBy{GroupBy{Type: "time", Interval: "auto"}}
 }
 
+// TagKeys returns a array of keys
 func (target *Target) TagKeys() []string {
 
 	keys := make([]string, len(target.Tags))
@@ -280,7 +313,7 @@ type Metric struct {
 	Alias       []string
 }
 
-// A serieOverride allows to setup specific override by serie
+// A SeriesOverride allows to setup specific override by serie
 type SeriesOverride struct {
 	Alias     string `json:"alias"`
 	Stack     bool   `json:"stack"`
@@ -320,7 +353,7 @@ func NewTarget() Target {
 	return Target{Function: "mean", RawQuery: false, Alias: "$tag_host $tag_name"}
 }
 
-// NewPanel create a new Grafana legend with default values
+// NewLegend create a new Grafana legend with default values
 func NewLegend() Legend {
 	return Legend{Show: true}
 }
@@ -415,16 +448,33 @@ func (s *Session) DeleteDataSource(ds DataSource) (err error) {
 	return
 }
 
-// GetDataSourceList return a list of existing Grafana DataSources.
+// GetDataSourcePlugins return a list of existing Grafana DataSources.
 // It return a array of DataSource struct.
 // It returns a error if it cannot get the DataSource list.
 func (s *Session) GetDataSourcePlugins() (plugins DataSourcePlugins, err error) {
 	reqURL := s.url + "/api/datasources/plugins"
 
 	body, err := s.httpRequest("GET", reqURL, nil)
+
 	if err != nil {
 		return
 	}
+
+	dec := json.NewDecoder(body)
+	err = dec.Decode(&plugins)
+	return
+}
+
+//GetPlugins get the list of plugins by PluginType
+func (s *Session) GetPlugins(pluginType string) (plugins Plugins, err error) {
+	reqURL := s.url + "/api/plugins?type=" + pluginType
+
+	body, err := s.httpRequest("GET", reqURL, nil)
+
+	if err != nil {
+		return
+	}
+
 	dec := json.NewDecoder(body)
 	err = dec.Decode(&plugins)
 	return
@@ -526,6 +576,7 @@ func (s *Session) DeleteDashboard(name string) (err error) {
 	return
 }
 
+//ConvertTemplate converts a string to a dashboard structure
 func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 	f, err := os.Open(file)
 	if err != nil {
