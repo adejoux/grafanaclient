@@ -85,7 +85,10 @@ type DataSource struct {
 
 // A DataSourcePlugin contains the json structure of Grafana DataSource plugin
 type DataSourcePlugin struct {
-	Annotations bool   `json:"annotations"`
+	Annotations struct {
+		Enable bool          `json:"enable"`
+		List   []interface{} `json:"list"`
+	} `json:"annotations"`
 	Module      string `json:"module"`
 	Name        string `json:"name"`
 	Partials    PluginPartial
@@ -193,7 +196,7 @@ type Template struct {
 	Current   struct {
 		Tags  []interface{} `json:"tags"`
 		Text  string        `json:"text"`
-		Value string        `json:"value"`
+		Value interface{}   `json:"value"`
 	} `json:"current,omitempty"`
 	Datasource  string `json:"datasource"`
 	IncludeAll  bool   `json:"includeAll"`
@@ -206,7 +209,7 @@ type Template struct {
 		Value    string `json:"value"`
 	} `json:"options,omitempty"`
 	Query         string `json:"query"`
-	Refresh       bool   `json:"refresh"`
+	Refresh       int    `json:"refresh"`
 	RefreshOnLoad bool   `json:"refresh_on_load"`
 	Regex         string `json:"regex"`
 	Type          string `json:"type"`
@@ -370,7 +373,7 @@ func NewGTime() GTime {
 
 // NewTemplate create a default template for Grafana
 func NewTemplate() Template {
-	return Template{Type: "query", Refresh: true, Multi: true, AllFormat: "regex values", MultiFormat: "regex values"}
+	return Template{Type: "query", Refresh: 1, Multi: true, AllFormat: "regex values", MultiFormat: "regex values"}
 }
 
 // NewSession creates a new http connection .
@@ -589,11 +592,16 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 	}
 
 	dashboard.Editable = true
-	if err := toml.Unmarshal(buf, &dashboard); err != nil {
-		fmt.Printf("ERROR: %s", err.Error())
-		os.Exit(1)
+	if tomlErr := toml.Unmarshal(buf, &dashboard); tomlErr != nil {
+		//try to convert a json template
+		if jsonErr := json.Unmarshal(buf, &dashboard); jsonErr != nil {
+			fmt.Printf("not a JSON template: %s\n", err.Error())
+			err = fmt.Errorf("Unable to parse template:\nTOML error: %s\nJSON error: %s\n", tomlErr.Error(), jsonErr.Error())
+			return dashboard, err
+		}
+		//cleanup existing dashboard ID
+		dashboard.ID = 0
 	}
-
 	defRow := NewRow()
 	defPanel := NewPanel()
 
