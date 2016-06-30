@@ -244,7 +244,6 @@ type Panel struct {
 	Style           struct{}         `json:"style"`
 	Title           string           `json:"title"`
 	Type            string           `json:"type"`
-	DataSource      string           `json:"datasource"`
 	Fill            int              `json:"fill"`
 	Stack           bool             `json:"stack"`
 	Targets         []Target         `json:"targets" toml:"target"`
@@ -260,15 +259,21 @@ type Panel struct {
 // A Target specify the metrics used by the Panel
 type Target struct {
 	Alias       string    `json:"alias"`
-	Function    string    `json:"function"`
 	Hide        bool      `json:"hide"`
-	Query       string    `json:"query"`
-	RawQuery    bool      `json:"rawQuery"`
 	Measurement string    `json:"measurement"`
-	GroupByTags []string  `json:"groupByTags"`
 	GroupBy     []GroupBy `json:"groupBy"`
+	Select      []Selects `json:"select,omitempty"`
 	Tags        []Tag     `json:"tags"`
+	DsType      string    `json:"dsType,omitempty"`
 	Transform   string    `json:"transform,omitempty" toml:"transform,omitempty"`
+}
+
+type Selects []Select
+
+// A Select specify the criteria to perform selection
+type Select struct {
+	Type   string   `json:"type"`
+	Params []string `json:"params"`
 }
 
 // A Legend specify the legend options used by the Panel
@@ -344,16 +349,15 @@ func NewRow() Row {
 // NewPanel create a new Grafana panel with default values
 func NewPanel() Panel {
 	return Panel{Span: 6,
-		Type:       "graph",
-		Editable:   true,
-		DataSource: "nmon2influxdb",
-		Fill:       0,
-		Legend:     NewLegend()}
+		Type:     "graph",
+		Editable: true,
+		Fill:     0,
+		Legend:   NewLegend()}
 }
 
 // NewTarget create a new Grafana target with default values
 func NewTarget() Target {
-	return Target{Function: "mean", RawQuery: false, Alias: "$tag_host $tag_name"}
+	return Target{Alias: "$tag_host $tag_name", DsType: "nmon2influxdb"}
 }
 
 // NewLegend create a new Grafana legend with default values
@@ -637,7 +641,6 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 				target.Tags = append(target.Tags, hostTag)
 				fieldsTag := Tag{Key: "name", Value: "/" + fields + "/", Condition: "AND"}
 				target.Tags = append(target.Tags, fieldsTag)
-				target.GroupByTags = []string{"name", "host"}
 				target.GroupBy = NewGroupBy()
 				target.GroupBy = append(target.GroupBy, GroupBy{Type: "tag", Params: []string{"name"}})
 				target.GroupBy = append(target.GroupBy, GroupBy{Type: "tag", Params: []string{"host"}})
