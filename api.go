@@ -254,6 +254,7 @@ type Panel struct {
 	Legend          Legend           `json:"legend,omitempty"`
 	LeftYAxisLabel  string           `json:"leftYAxisLabel,omitempty"`
 	RightYAxisLabel string           `json:"rightYAxisLabel,omitempty"`
+	DataSource      string           `json:"datasource,omitempty"`
 }
 
 // A Target specify the metrics used by the Panel
@@ -357,7 +358,7 @@ func NewPanel() Panel {
 
 // NewTarget create a new Grafana target with default values
 func NewTarget() Target {
-	return Target{Alias: "$tag_host $tag_name", DsType: "nmon2influxdb"}
+	return Target{Alias: "$tag_host $tag_name", DsType: "influxdb"}
 }
 
 // NewLegend create a new Grafana legend with default values

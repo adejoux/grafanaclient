@@ -33,11 +33,11 @@ func Test_DoLogon(t *testing.T) {
 	assert.Nil(t, err, "We are expecting no error and got one")
 }
 
-func Test_GetDataSourcePlugins(t *testing.T) {
+func Test_GetPlugins(t *testing.T) {
 	session := NewSession("admin", "admin", url)
 	err := session.DoLogon()
 	assert.Nil(t, err, "We are expecting no error and got one")
-	plugins, err := session.GetDataSourcePlugins()
+	plugins, err := session.GetPlugins("datasource")
 	assert.Nil(t, err, "We are expecting no error and got one when getting DataSource Plugins")
 	assert.NotNil(t, plugins["influxdb"], "We didn't find a plugin for InfluxDB in DataSource")
 }
