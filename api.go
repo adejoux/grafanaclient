@@ -26,10 +26,13 @@ import (
 	"net/http/cookiejar"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/imdario/mergo"
 	"github.com/naoina/toml"
 )
+
+const timeout = 5
 
 // GrafanaError is a error structure to handle error messages in this library
 type GrafanaError struct {
@@ -269,6 +272,7 @@ type Target struct {
 	Transform   string    `json:"transform,omitempty" toml:"transform,omitempty"`
 }
 
+// Selects array of Select struct
 type Selects []Select
 
 // A Select specify the criteria to perform selection
@@ -392,7 +396,7 @@ func NewSession(user string, password string, url string) *Session {
 		log.Fatal(err)
 	}
 
-	return &Session{client: &http.Client{Jar: jar}, User: user, Password: password, url: url}
+	return &Session{client: &http.Client{Jar: jar, Timeout: time.Second * timeout}, User: user, Password: password, url: url}
 }
 
 // httpRequest handle the request to Grafana server.
@@ -533,6 +537,44 @@ func (s *Session) GetDashboard(name string) (dashboard DashboardResult, err erro
 	dec := json.NewDecoder(body)
 	err = dec.Decode(&dashboard)
 	return
+}
+
+// AddRow add a row to an existing dashboard.
+// It takes a Row struct in parameter.
+func (db *Dashboard) AddRow(row Row) {
+	db.Rows = append(db.Rows, row)
+}
+
+// SetTimeFrame setup the dashboard timeframe.
+func (db *Dashboard) SetTimeFrame(from time.Time, to time.Time) {
+	db.GTime = GTime{From: from.Format(time.RFC3339), To: to.Format(time.RFC3339)}
+}
+
+// AddPanel add a panel to an existing row.
+// It takes a Row struct in parameter.
+func (row *Row) AddPanel(panel Panel) {
+	row.Panels = append(row.Panels, panel)
+}
+
+// AddTarget add a target to an existing panel.
+// It takes a Panel struct in parameter.
+func (panel *Panel) AddTarget(target Target) {
+	panel.Targets = append(panel.Targets, target)
+}
+
+// FilterByTag add a Tag to an existing target.
+// It takes a name and value strings in parameter.
+func (target *Target) FilterByTag(name string, value string) {
+	target.Tags = append(target.Tags, Tag{Key: name, Value: value})
+}
+
+// GroupByTag add a group by selection to the Target
+// It takes a string in parameter specifying the tag name
+func (target *Target) GroupByTag(tag string) {
+	if len(target.GroupBy) == 0 {
+		target.GroupBy = NewGroupBy()
+	}
+	target.GroupBy = append(target.GroupBy, GroupBy{Type: "tag", Params: []string{tag}})
 }
 
 // UploadDashboardString upload a new Dashboard.
