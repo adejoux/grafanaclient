@@ -382,7 +382,7 @@ func NewGTime() GTime {
 
 // NewTemplate create a default template for Grafana
 func NewTemplate() Template {
-	return Template{Type: "query", Refresh: 1, Multi: true, AllFormat: "regex values", MultiFormat: "regex values"}
+	return Template{Type: "query", Refresh: 1, AllFormat: "regex values", MultiFormat: "regex values"}
 }
 
 // NewSession creates a new http connection .
