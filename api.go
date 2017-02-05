@@ -258,6 +258,16 @@ type Panel struct {
 	LeftYAxisLabel  string           `json:"leftYAxisLabel,omitempty"`
 	RightYAxisLabel string           `json:"rightYAxisLabel,omitempty"`
 	DataSource      string           `json:"datasource,omitempty"`
+	NullPointMode   string           `json:"nullPointMode,omitempty"`
+	Lines           bool             `json:"lines,omitempty"`
+	Linewidth       int              `json:"linewidth,omitempty"`
+	Points          bool             `json:"points,omitempty"`
+	Pointradius     int              `json:"pointradius,omitempty"`
+	Bars            bool             `json:"bars,omitempty"`
+	Percentage      bool             `json:"percentage,omitempty"`
+	SteppedLine     bool             `json:"steppedLine,omitempty"`
+	TimeFrom        interface{}      `json:"timeFrom,omitempty"`
+	TimeShift       interface{}      `json:"timeShift,omitempty"`
 }
 
 // A Target specify the metrics used by the Panel
@@ -354,10 +364,12 @@ func NewRow() Row {
 // NewPanel create a new Grafana panel with default values
 func NewPanel() Panel {
 	return Panel{Span: 6,
-		Type:     "graph",
-		Editable: true,
-		Fill:     0,
-		Legend:   NewLegend()}
+		Type:          "graph",
+		Editable:      true,
+		Fill:          0,
+		Legend:        NewLegend(),
+		NullPointMode: "connected",
+	}
 }
 
 // NewTarget create a new Grafana target with default values
