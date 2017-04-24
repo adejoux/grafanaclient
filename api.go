@@ -167,7 +167,7 @@ type Dashboard struct {
 	HideControls    bool          `json:"hideControls"`
 	ID              int           `json:"id"`
 	OriginalTitle   string        `json:"originalTitle"`
-	Refresh         bool          `json:"refresh"`
+	Refresh         string        `json:"refresh"`
 	Annotations     Annotation    `json:"annotations"`
 	SchemaVersion   int           `json:"schemaVersion"`
 	SharedCrosshair bool          `json:"sharedCrosshair"`
@@ -212,7 +212,7 @@ type Template struct {
 		Value    string `json:"value"`
 	} `json:"options,omitempty"`
 	Query         string `json:"query"`
-	Refresh       int    `json:"refresh"`
+	Refresh       string `json:"refresh"`
 	RefreshOnLoad bool   `json:"refresh_on_load"`
 	Regex         string `json:"regex"`
 	Type          string `json:"type"`
@@ -394,7 +394,7 @@ func NewGTime() GTime {
 
 // NewTemplate create a default template for Grafana
 func NewTemplate() Template {
-	return Template{Type: "query", Refresh: 1, AllFormat: "regex values", MultiFormat: "regex values"}
+	return Template{Type: "query", Refresh: "1", AllFormat: "regex values", MultiFormat: "regex values"}
 }
 
 // NewSession creates a new http connection .
