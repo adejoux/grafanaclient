@@ -24,15 +24,18 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"crypto/tls"
 	"os"
 	"strings"
 	"time"
+	"regexp"
 
 	"github.com/imdario/mergo"
 	"github.com/naoina/toml"
 )
 
 const timeout = 5
+var protocolRegexp = regexp.MustCompile(`^https://`)
 
 // GrafanaError is a error structure to handle error messages in this library
 type GrafanaError struct {
@@ -408,7 +411,16 @@ func NewSession(user string, password string, url string) *Session {
 		log.Fatal(err)
 	}
 
-	return &Session{client: &http.Client{Jar: jar, Timeout: time.Second * timeout}, User: user, Password: password, url: url}
+	client := http.Client{Jar: jar, Timeout: time.Second * timeout}
+
+	if protocolRegexp.MatchString(url) {
+		tr := &http.Transport{
+        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+		client.Transport = tr
+	}
+
+	return &Session{client: &client, User: user, Password: password, url: url}
 }
 
 // httpRequest handle the request to Grafana server.
