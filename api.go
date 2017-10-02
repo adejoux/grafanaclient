@@ -17,6 +17,7 @@ package grafanaclient
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,17 +25,17 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
-	"crypto/tls"
 	"os"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 
 	"github.com/imdario/mergo"
 	"github.com/naoina/toml"
 )
 
 const timeout = 5
+
 var protocolRegexp = regexp.MustCompile(`^https://`)
 
 // GrafanaError is a error structure to handle error messages in this library
@@ -262,6 +263,7 @@ type Panel struct {
 	RightYAxisLabel string           `json:"rightYAxisLabel,omitempty"`
 	DataSource      string           `json:"datasource,omitempty"`
 	NullPointMode   string           `json:"nullPointMode,omitempty"`
+	ValueName       string           `json:"valueName,omitempty"`
 	Lines           bool             `json:"lines,omitempty"`
 	Linewidth       int              `json:"linewidth,omitempty"`
 	Points          bool             `json:"points,omitempty"`
@@ -415,8 +417,8 @@ func NewSession(user string, password string, url string) *Session {
 
 	if protocolRegexp.MatchString(url) {
 		tr := &http.Transport{
-        TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-    }
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
 		client.Transport = tr
 	}
 
