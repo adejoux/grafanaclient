@@ -317,7 +317,7 @@ type GroupBy struct {
 
 //NewGroupBy initialize a GroupBy structure
 func NewGroupBy() []GroupBy {
-	return []GroupBy{GroupBy{Type: "time", Interval: "auto"}}
+	return []GroupBy{{Type: "time", Interval: "auto"}}
 }
 
 // TagKeys returns a array of keys
@@ -669,7 +669,7 @@ func ConvertTemplate(file string) (dashboard Dashboard, err error) {
 		//try to convert a json template
 		if jsonErr := json.Unmarshal(buf, &dashboard); jsonErr != nil {
 			fmt.Printf("not a JSON template: %s\n", err.Error())
-			err = fmt.Errorf("Unable to parse template:\nTOML error: %s\nJSON error: %s\n", tomlErr.Error(), jsonErr.Error())
+			err = fmt.Errorf("unable to parse template:\nTOML error: %s\nJSON error: %s", tomlErr.Error(), jsonErr.Error())
 			return dashboard, err
 		}
 		//cleanup existing dashboard ID

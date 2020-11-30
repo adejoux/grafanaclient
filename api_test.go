@@ -1,7 +1,10 @@
 package grafanaclient
 
-import "github.com/stretchr/testify/assert"
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 var url = "http://192.168.56.101:3000"
 var user = "admin"
@@ -32,6 +35,7 @@ var dashboard = `{
 func Test_DoLogon(t *testing.T) {
 	session := NewSession(user, pass, url)
 	err := session.DoLogon()
+
 	assert.Nil(t, err, "We are expecting no error and got one")
 }
 
